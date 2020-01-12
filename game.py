@@ -12,11 +12,24 @@ open_pile = []
 closed_pile = []
 constraint = None
 
+winner = False
+
 # Helper functions
 def cinput(text, type):
     input_value = input('- ' + text + '\n> ')
+
+    if input_value == 'exit' or input_value == 'exit()' or input_value == 'quit()':
+        quit()
+
     if type == 'int':
-        return int(input_value)
+        try: 
+            int_value = int(input_value)
+            return int_value
+        except ValueError:
+            clear()
+            print('Only integers are accepted here. Please try again.')
+            sleep(2)
+            return cinput(text, type)
     else:
         return input_value
 
@@ -28,10 +41,74 @@ def clear():
 
 # Game functions
 
+def end():
+    global players
+    global players_count
+    global players_decks
+
+    print('Game ended!\n\n')
+    sleep(1)
+
+    # Points Count Start
+
+    players_points = []
+    for i in range(players_count):
+        p_deck = players_decks[i]
+
+        p_points_sum = 0
+        for i in range(len(p_deck)):
+            cur_card = p_deck[i]
+            points = cur_card[2]
+            p_points_sum += points
+        players_points.append(p_points_sum)
+
+    # Thanks StackOverflow (https://stackoverflow.com/a/6618543) for the zip method
+    players_names_sorted = [x for _,x in sorted(zip(players_points, players))]
+    players_points_sorted = players_points.sort()
+
+    print('These are the results!\n')
+    sleep(1)
+    for i in range(players_count):
+        print(str(i + 1) + '. ' + players_names_sorted[i] + '  -  Points: ' + players_points_sorted[i])
+    
+    print('\nHint: Less points is better\n')
+    sleep(2)
+    
+    # Points Count Stop
+
+    print('Thank you for playing!\n')
+    cinput('Hit enter to exit the game.', 'str')
+    quit()
+
+def part_end(p_name):
+    global winner
+    global players_count
+    global players_decks
+
+    clear()
+    winner = True
+    print('Player ' + p_name + 'has no cards left! He is the winner of the game.\n\n')
+
+    players_left = False
+    for i in range(players_count):
+        if len(players_decks[i]) > 1:
+            players_left = True
+    
+    sleep(3)
+
+    if players_left == False: # It's awful that we cannot do 'if !players_left' in Python
+        end()
+    else:
+        print('There are still players, continue the game!\n\n')
+        sleep(1)
+        cinput('Hit enter to continue', 'str')
+        game()
+
+
 def matches(last_card, card):
     global open_pile
 
-    if last_card[0] == card[0] or last_card[1] == card[1]:
+    if last_card[0] == card[0] or last_card[1] == card[1] or card[1] == 'A':
         open_pile.append(card)
         return True
     else:
@@ -40,6 +117,7 @@ def matches(last_card, card):
 def select_type():
     clear()
     print('You can choose a new card type!\n\n')
+    sleep(1)
     print('These are your card options:\n')
     print('(1) ♥  (2) ♣  (3) ♦  (4) ♠')
 
@@ -88,16 +166,20 @@ def turn(p_name, p_deck):
     global open_pile
     global constraint
 
-    clear()
-
     last_card = open_pile[-1]
+    drawed_card = False
+
+    clear()
 
     print('It\'s ' + p_name + '\'s turn!\n\n')
     print('Last Card: ' + last_card[0] + last_card[1])
 
+    sleep(1)
+
     if constraint:
         print('Warning! There is a constraint caused by the previous player.\n')
         print('The new last card is: ' + constraint + last_card[1])
+        sleep(1)
 
     print('\n\n')
     print('These are your card options:\n')
@@ -114,9 +196,16 @@ def turn(p_name, p_deck):
 
     if option == 0:
         p_deck = draw_card(p_deck)
+        drawed_card = True
         o = len(options)
     else:
         o = option - 1
+    
+    if o >= len(p_deck):
+        clear()
+        print('The option you selected does not correspond to a card. Please try again.')
+        sleep(2)
+        return turn(p_name, p_deck)
 
     card = p_deck[o]
 
@@ -130,16 +219,26 @@ def turn(p_name, p_deck):
         action = special(card)
 
         if action == 'play_again':
-            turn(p_name, p_deck)
+            return turn(p_name, p_deck)
         else:
             return [p_deck, action]
     else:
         clear()
-        print('The selected card does not follow the game\'s sequence.\nPlease try again.')
-        sleep(3)
-        turn(p_name, p_deck)
+        print('The selected card does not follow the game\'s sequence.\n')
+
+        if drawed_card:
+            print('The card you drew was ' + str(card[0]) + str(card[1]) + '\nMoving to the next player..')
+
+            sleep(5)
+            drawed_card = False
+            return [p_deck, 'none']
+        else:
+            print('Please try again.')
+            sleep(3)
+            return turn(p_name, p_deck)
 
 def game():
+    global winner
     global players
     global players_count
     global players_decks
@@ -149,12 +248,21 @@ def game():
 
     for i in range(players_count):
 
+        if len(players_decks[i]) < 1:
+            continue
+
         if prev_action == 'take_two':
             players_decks[i] = draw_card(players_decks[i])
             players_decks[i] = draw_card(players_decks[i])
             prev_action = None
+
+            print('Player ' + players[i] + ' has just got 2 more cards!')
+            sleep(3)
         elif prev_action == 'skip':
             prev_action = None
+
+            print('Player ' + players[i] + ' has just lost his turn!')
+            sleep(3)
             continue
 
         result = turn(players[i], players_decks[i])
@@ -174,6 +282,19 @@ def game():
             constraint = '♦'
         elif action == 'spades':
             constraint = '♠'
+            
+        if len(p_deck) < 1:
+            part_end(players[i])
+
+        if winner:
+            points_sum = 0
+            for i in range(len(p_deck)):
+                cur_card = p_deck[i]
+                points = cur_card[2]
+                points_sum += points
+            
+            if points_sum > 50:
+                end()
         
     game()
 
@@ -191,7 +312,7 @@ def handle_deck():
     global players_count
     global players_decks
     global open_pile
-    global close_pile
+    global closed_pile
 
     deck = create_deck()
     for i in range(players_count):
@@ -227,7 +348,10 @@ def start():
 
 def main():
     print('Welcome to the Agony Game!\n\nAre you ready to play?')
-    #sleep(2)
+    sleep(1)
+    print('\n\nExit whenever you like by typing "exit" or "exit()"\n\n')
+    print('Created with ♥ by Konstantinos Kagioulis & Stratos Aravantinos Kritikos')
+    sleep(3)
     start()
 
 main()
