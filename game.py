@@ -92,7 +92,7 @@ def part_end(p_name):
     players_left = 0
     for i in range(players_count):
         if len(players_decks[i]) > 1:
-            players_left++
+            players_left += 1
     
     sleep(3)
 
