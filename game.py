@@ -64,13 +64,13 @@ def end():
 
     # Thanks StackOverflow (https://stackoverflow.com/a/6618543) for the zip method
     players_names_sorted = [x for _,x in sorted(zip(players_points, players))]
-    players_points_sorted = players_points.sort()
+    players_points.sort()
 
     print('These are the results!\n')
     sleep(1)
     for i in range(players_count):
-        print(str(i + 1) + '. ' + players_names_sorted[i] + '  -  Points: ' + players_points_sorted[i])
-    
+        print(str(i + 1) + '. ' + players_names_sorted[i] + '  -  Points: ' + str(players_points[i]))
+
     print('\nHint: Less points is better\n')
     sleep(2)
     
@@ -87,7 +87,7 @@ def part_end(p_name):
 
     clear()
     winner = True
-    print('Player ' + p_name + 'has no cards left! He is the winner of the game.\n\n')
+    print('Player ' + p_name + ' has no cards left! He is the winner of the game.\n\n')
 
     players_left = 0
     for i in range(players_count):
