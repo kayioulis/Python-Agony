@@ -89,14 +89,14 @@ def part_end(p_name):
     winner = True
     print('Player ' + p_name + 'has no cards left! He is the winner of the game.\n\n')
 
-    players_left = False
+    players_left = 0
     for i in range(players_count):
         if len(players_decks[i]) > 1:
-            players_left = True
+            players_left++
     
     sleep(3)
 
-    if players_left == False: # It's awful that we cannot do 'if !players_left' in Python
+    if players_left < 2:
         end()
     else:
         print('There are still players, continue the game!\n\n')
